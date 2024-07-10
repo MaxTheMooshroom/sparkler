@@ -19,10 +19,16 @@ MRPack2Nix is intended to be used via flake:
     systems = [ "x86_64-linux" ];
 
     mrpack2nix.my-server = mrpack2nix.mkModpack {
+      # mrpack files are zips ; extract <pack>.mrpack/modrinth.index.json
+      # and use that to generate the container. Use modids and their versions
+      # to generate the hash for the container.
       pack = ./my-pack-1.0.2.mrpack;
+
+      # if true, mrpack2nix will generate a eula.txt file with "eula=true",
+      # otherwise errors
       eula = true;
 
-      worldName = "my-world";
+      worldName = "my-world";  # gets added as a sparkler volume
 
       udpPorts = [
         55265  # server itself
@@ -32,7 +38,7 @@ MRPack2Nix is intended to be used via flake:
         24454  # simple voice chat
       ];
 
-      server-properties = {
+      serverProperties = {
         "motd" = "A wonderful minecraft server! :D";
 
         "level-name" = "world";
