@@ -1,112 +1,64 @@
 
-# MRPack2Nix
+# Sparkler
 
-Modrinth Pack (mrpack) 2 nix is a nix utility for generating a nixos container for
-a modded minecraft server from a modrinth modpack profile.
+Sparkler is a nix module for declarative modded minecraft servers.
+
+Sparkler performs 3 primary functions:
+- generates a container for a modded minecraft server, as a nix container.
+- provides a way to host forge-based servers.
+- provides a static site for the minecraft server that:
+  - provides the server status (down, offline, online, etc)
+  - provides a download for the current pack file
+  - has optional modules for:
+    - [create track map](https://modrinth.com/mod/create-track-map)
 
 # Usage
-MRPack2Nix is intended to be used via flake:
-`flake.nix`:
+Sparkler is intended to be used from within a system configuration:
 ```nix
-{
-  description = "My modded minecraft server";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
-  inputs.mrpack2nix.url = "github:MaxTheMooshroom/mrpack2nix";
+sparkler.enable = true;
+sparkler.passthru = {
+  # global options for nix-minecraft: https://github.com/Infinidoge/nix-minecraft
+  # ...
+};
+sparkler.servers.myMinecraftServer = {
+    packFile = "/where/is/the/pack/file";
 
-  outputs = { self, nixpkgs, mrpack2nix, ... }@inputs: {
-    imports = [ inputs.mrpack2nix.flakeModule ];
-    systems = [ "x86_64-linux" ];
-
-    mrpack2nix.my-server = mrpack2nix.mkModpack {
-      # mrpack files are zips ; extract <pack>.mrpack/modrinth.index.json
-      # and use that to generate the container. Use modids and their versions
-      # to generate the hash for the container.
-      pack = ./my-pack-1.0.2.mrpack;
-
-      # if true, mrpack2nix will generate a eula.txt file with "eula=true",
-      # otherwise errors
-      eula = true;
-
-      worldName = "my-world";  # gets added as a sparkler volume
-
-      udpPorts = [
-        55265  # server itself
-        55275  # rcon port
-
-        3876   # web server for viewing live create railway statuses
-        24454  # simple voice chat
-      ];
-
-      serverProperties = {
-        "motd" = "A wonderful minecraft server! :D";
-
-        "level-name" = "world";
-        # "level-seed" = "";
-        "gamemode" = "survival";
-        "difficulty" = "hard";
-
-        "max-players" = 5;
-        
-        "enable-rcon" = true;
-        "rcon.port" = 25575;
-        "rcon.password" = "hunter2";
-
-        # "enable-jmx-monitoring" = false;
-        # "enable-command-block" = false;
-        # "enable-query" = false;
-        # "generator-settings" = "{}";
-        # "enforce-secure-profile" = true;
-        # "query.port" = 25565;
-        # "pvp" = true;
-        # "generate-structures" = true;
-        # "max-chained-neighbor-updates" = 1000000;
-        # "network-compression-threshold" = 256;
-        # "max-tick-time" = 60000;
-        # "require-resource-pack" = true;
-        # "use-native-transport" = true;
-        # "online-mode" = true;
-        # "enable-status" = true;
-        # "allow-flight" = false;
-        # "initial-disabled-packs" = ;
-        # "broadcast-rcon-to-ops" = true;
-        # "view-distance" = 10;
-        # "server-ip" = ;
-        # "resource-pack-prompt" = ;
-        # "allow-nether" = true;
-        # "server-port" = 25565;
-        # "sync-chunk-writes" = true;
-        # "op-permission-level" = 4;
-        # "prevent-proxy-connections" = false;
-        # "hide-online-players" = false;
-        # "resource-pack" = ;
-        # "entity-broadcast-range-percentage" = 100;
-        # "simulation-distance" = 10;
-        # "player-idle-timeout" = 0;
-        # "force-gamemode" = false;
-        # "rate-limit" = 0;
-        # "hardcore" = false;
-        # "white-list" = false;
-        # "broadcast-console-to-ops" = true;
-        # "spawn-npcs" = true;
-        # "spawn-animals" = true;
-        # "log-ips" = true;
-        # "function-permission-level" = 2;
-        # "initial-enabled-packs" = vanilla;
-        # "level-type" = minecraft\:normal;
-        # "text-filtering-config" = ;
-        # "spawn-monsters" = true;
-        # "enforce-whitelist" = false;
-        # "spawn-protection" = 16;
-        # "resource-pack-sha1" = ;
-        # "max-world-size" = 29999984;
-      };
+    passthru = {
+      # server-specific options for nix-minecraft: https://github.com/Infinidoge/nix-minecraft
+      # ...
     };
-  };
-}
+
+    server.forge = {
+      enable = true;
+
+      version = "47.2.17";          # used for checks and validations
+      minecraftVersion = "1.20.1";  # used for checks and validations
+
+      url = "...";
+      sha512 = "...";
+    };
+
+    # settings for sparkler servers' web portals
+    webPortal = {
+      enable = true;
+      port = 8080;
+      staticfilesDir = "/";
+
+      # not yet in use
+      # features = [ ];
+    };
+
+    ports.enable = true;
+
+    # explicit port definitions
+    ports.udp = [
+      25565  # default minecraft server port
+      25575  # default minecraft rcon port
+      24454  # default simple-voice-chat port
+       3876  # default create-track-map port
+    ];
+};
+
 ```
 
-### See Also
-
-- https://github.com/systemd/systemd/issues/30239
-- https://github.com/systemd/systemd/pull/26826
